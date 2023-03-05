@@ -1,0 +1,10 @@
+f = 535
+RMS = 0.386
+distortion coefficients:  [ 0.07390572 -0.28513583  0.00037029 -0.00081833  0.20955319]
+
+Coloco a una distancia de 50 cms, un objeto de 17 cm
+
+El objeto mide 298 pixeles y para calcular la f, realizamos los siguentes calculos : 
+f = (300.1*50)/ 17 = 882,647059 pix
+El valor calculado es bastante más grande que el obtenido en primera instancia por el script calibrate.py, cuya f nos otorgaba un valor de 535.78 pixeles 
+
