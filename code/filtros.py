@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+
+# > ./filtros.py --dev=help
 import cv2 as cv
 import numpy as np
 from umucv.stream import autoStream
 from umucv.util import ROI,putText
 from umucv.util import Help
 from math import sqrt
+import time
 
 cv.namedWindow("input")
 
@@ -58,9 +61,6 @@ isRoi = False
 
 
     
-    
-
-
 
 def mytrackbar(param,window,X,a,b):
     def fun(v):
@@ -80,9 +80,6 @@ mytrackbar("Sigma","trackbars",SIGMA,1,100)
 mytrackbar("Sigma cascading","trackbars",SIGMACASC,1,100)
 mytrackbar("Kernel","trackbars",KSIZE,1,101)
 
-
-cv.resizeWindow("trackbars",400,400)
-
 def apply_filter(frame,roi=None):
     global SIZE,SIGMA,B,SIGMACASC
     SIGMA = cv.getTrackbarPos("Sigma", "trackbars")
@@ -101,42 +98,56 @@ def apply_filter(frame,roi=None):
             roi = cv.GaussianBlur(roi,(KSIZE,KSIZE),SIGMACASC) 
             roiCasc = cv.GaussianBlur(roiCasc,(KSIZE,KSIZE),sigma_EQ)    
             dif = cv.absdiff(roi,roiCasc)
-            putText("Cascading", f'Difference : {dif}')
+            mean = np.mean(dif) / 255
+            putText(frame, f'Gaussian filter + Cascading',orig=(5,30),div = 0)
+            putText(roiCasc, f'Difference : {mean}')
             
             cv.imshow("Cascading",roiCasc)
 
         if apply_gaussian and apply_separability:
             roi = cv.GaussianBlur(roi,(KSIZE,KSIZE),SIGMA)
-            roi = cv.GaussianBlur(roi,(KSIZE,KSIZE),SIGMA)
             # Descomponemos el filtro gaussiano 2D en dos filtros 1D separables
             gaussian_kernel_x = cv.getGaussianKernel((KSIZE,KSIZE)[0], SIGMA)
             gaussian_kernel_y = cv.getGaussianKernel((KSIZE,KSIZE)[1], SIGMA)
             roi = cv.sepFilter2D(roi, -1, gaussian_kernel_x, gaussian_kernel_y)
-        
+            putText(frame, f'Gaussian filter + Separability',orig=(5,30),div = 0) 
+
+
         if apply_gaussian and not apply_separability:
             roi = cv.GaussianBlur(roi,(KSIZE,KSIZE),SIGMA)
+            putText(frame, f'Gaussian filter',orig=(5,30),div = 0)  
+
         if apply_byn:
             frame = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
             roi = frame[y1:y2+1, x1:x2+1]
             roi = cv.cvtColor(roi, cv.COLOR_GRAY2BGR)
+            putText(frame, f'Black and white',orig=(5,50),div = 0)  
         if not apply_byn:
             roi = roi
+            
         if apply_box:
             roi = cv.boxFilter(roi,-1,(KSIZE,KSIZE))
+            putText(frame, f'Box filter',orig=(5,70),div = 0) 
+
         if apply_median:
             roi = cv.medianBlur(roi,KSIZE)
+            putText(frame, f'Median filter',orig=(5,90),div = 0) 
         if apply_min:
             kernel = cv.getStructuringElement(cv.MORPH_RECT, (KSIZE,KSIZE))
             roi = cv.erode(roi, kernel)
+            putText(frame, f'Min filter',orig=(5,110),div = 0)
         if apply_max:
             kernel = cv.getStructuringElement(cv.MORPH_RECT, (KSIZE,KSIZE))
             roi = cv.dilate(roi, kernel)
+            putText(frame, f'Max filter',orig=(5,130),div = 0) 
+
         if apply_anyfilter:
             roi = roi 
         
         return roi 
     else :
         if apply_gaussian and apply_cascading:
+            
             cv.namedWindow("Cascading")
             frameCasc = frame
             sigma_EQ = sqrt(pow(SIGMA,2)+pow(SIGMACASC,2))
@@ -145,11 +156,12 @@ def apply_filter(frame,roi=None):
             frame = cv.GaussianBlur(frame,(KSIZE,KSIZE),SIGMACASC) 
 
             frameCasc = cv.GaussianBlur(frameCasc,(KSIZE,KSIZE),sigma_EQ)  
-            #dif = cv.absdiff(frame,frameCasc)
-            
-            #putText("Cascading", f'Difference : {float(np.mean(dif))}')         
+            dif = cv.absdiff(frame,frameCasc)
+            mean = np.mean(dif) / 255
+            putText(frame, f'Gaussian filter + Cascading',orig=(5,30),div = 0)  
+            putText(frameCasc, f'Difference : {mean}',orig=(5,30),div = 0)         
             cv.imshow("Cascading",frameCasc)
-        
+            
         if apply_gaussian and apply_separability:
             frame = cv.GaussianBlur(frame,(KSIZE,KSIZE),SIGMA)
             frame = cv.GaussianBlur(frame,(KSIZE,KSIZE),SIGMA)
@@ -157,21 +169,28 @@ def apply_filter(frame,roi=None):
             gaussian_kernel_x = cv.getGaussianKernel((KSIZE,KSIZE)[0], SIGMA)
             gaussian_kernel_y = cv.getGaussianKernel((KSIZE,KSIZE)[1], SIGMA)
             frame = cv.sepFilter2D(frame, -1, gaussian_kernel_x, gaussian_kernel_y)
+            putText(frame, f'Gaussian filter + Separability',orig=(5,30),div = 0) 
 
         if apply_gaussian and not apply_separability:
             frame = cv.GaussianBlur(frame,(KSIZE,KSIZE),SIGMA)
+            putText(frame, f'Gaussian filter',orig=(5,30),div = 0)  
         if apply_byn:
             frame = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
+            putText(frame, f'Black and white',orig=(5,50),div = 0)  
         if apply_box:
             frame = cv.boxFilter(frame,-1,(KSIZE,KSIZE))
+            putText(frame, f'Box filter',orig=(5,70),div = 0) 
         if apply_median:
             frame = cv.medianBlur(frame,KSIZE)
+            putText(frame, f'Median filter',orig=(5,90),div = 0) 
         if apply_min:
             kernel = cv.getStructuringElement(cv.MORPH_RECT, (KSIZE,KSIZE))
             frame = cv.erode(frame, kernel)
+            putText(frame, f'Min filter',orig=(5,110),div = 0) 
         if apply_max:
             kernel = cv.getStructuringElement(cv.MORPH_RECT, (KSIZE,KSIZE))
             frame = cv.dilate(frame, kernel)
+            putText(frame, f'Max filter',orig=(5,130),div = 0) 
         if apply_anyfilter:
            frame = frame 
         return frame
@@ -200,6 +219,8 @@ for key, frame in autoStream():
             if key == ord('k'):
                 apply_max = not apply_max
             if key == ord('o'):
+                if apply_cascading :
+                    cv.destroyWindow("Cascading")
                 apply_cascading = not apply_cascading
             if key == ord('p'):
                 apply_separability = not apply_separability
@@ -227,6 +248,8 @@ for key, frame in autoStream():
         if key == ord('k'):
             apply_max = not apply_max
         if key == ord('o'):
+                if apply_cascading :
+                    cv.destroyWindow("Cascading")
                 apply_cascading = not apply_cascading
         if key == ord('p'):
             apply_separability = not apply_separability
@@ -235,6 +258,8 @@ for key, frame in autoStream():
     if apply_onlyroi and region.roi:
             roi = apply_filter(frame,roi)
             frame[y1:y2+1, x1:x2+1] = roi
+            putText(frame, f'Only Roi',orig=(5,150),div = 0) 
+
     if not apply_onlyroi:
             frame = apply_filter(frame)                   
 
